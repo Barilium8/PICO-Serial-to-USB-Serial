@@ -313,8 +313,8 @@ void MIDI_USB_SERIAL_DEV_Get() { // inbound MIDI (as Serial Data) from PC/MAC (v
 // =======================================================
 
 void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
-    if (MIDI_USB_SERIAL_DEV.read() && gSend_PC_MIDI_As_MIDI) {
-      MIDI_PICO_UART0.send(MIDI_USB_SERIAL_DEV.getType(), MIDI_USB_SERIAL_DEV.getData1(), MIDI_USB_SERIAL_DEV.getData2(), MIDI_USB_SERIAL_DEV.getChannel()); // outbound to Controller
+    if (MIDI_USB_DEV.read() && gSend_PC_MIDI_As_MIDI) {
+      MIDI_PICO_UART0.send(MIDI_USB_DEV.getType(), MIDI_USB_DEV.getData1(), MIDI_USB_DEV.getData2(), MIDI_USB_DEV.getChannel()); // outbound to Controller
     }
 }
 
