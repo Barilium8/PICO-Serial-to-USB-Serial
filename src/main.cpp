@@ -80,6 +80,7 @@ void SendControllerInfo();
 void BlinkLED(uint8_t times);
 void DrawMenu();
 void EEPromUpdate(uint8_t addr, uint8_t val);
+void PrintNotes();
 
 bool gSend_PC_MIDI_As_MIDI = true;
 bool gPrevSend_PC_MIDI_As_MIDI = true;
@@ -141,6 +142,7 @@ void setup() {
   gPrevSend_CM5_MIDI_As_SERIAL= gSend_CM5_MIDI_As_SERIAL;
 
   DrawMenu();
+  PrintNotes();
 
 } // end setup
 
@@ -384,3 +386,24 @@ void EEPromUpdate(uint8_t addr, uint8_t val) {
   }
 
 }
+
+//====================================================================
+
+void PrintNotes() {
+    Serial.println("");
+    Serial.println("");
+    Serial.println("  NOTES: This is a RS232 Serial to USB bridge and loopback debugger)");
+    Serial.println("    It inserts between the serial ports of the WTS Controller PICO and WTS CM5,");
+    Serial.println("    so that MIDI traffic can be intercepted and rerouted to a PC,");
+    Serial.println("    as well as looped back for 'normmal' WTS Synth mode.");
+    Serial.println("    It can (full duplex) send MIDI and/or Serial MIDI data between WTS Controller PICO and WTS CM5");
+    Serial.println("    This is code for a PICO 'RP2040 ZERO', although can be used on any PICO (pin#'s may differ)");
+    Serial.println("");
+    Serial.println("  Pin Assignments:");
+    Serial.println("    PICO: GPIO0 - UART0 'TX' (Pin0) to WTS IO Board JP30 Pin4");
+    Serial.println("    PICO: GPIO1 - UART0 'RX' (Pin1) to WTS IO Board JP30 Pin6");
+    Serial.println("    PICO: GPIO4 - UART1 'TX' (Pin4) to WTS IO Board JP30 Pin3");
+    Serial.println("    PICO: GPIO5 - UART1 'RX' (Pin5) to WTS IO Board JP30 Pin5");
+}
+
+//====================================================================
