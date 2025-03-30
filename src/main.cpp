@@ -73,8 +73,10 @@ uint8_t theMIDIChan = 16;
 
 
 // function prototypes
-void MIDI_PICO_UART0_Get(); // UART1 Serial2 port
-void MIDI_USB_SERIAL_DEV_Get();   // PC/MAC Serial port
+void MIDI_PICO_UART0_Get();
+void MIDI_CM5_UART1_Get();
+void MIDI_USB_SERIAL_DEV_Get();
+void MIDI_USB_DEV_Get();
 
 void SendControllerInfo();
 void BlinkLED(uint8_t times);
@@ -268,13 +270,15 @@ void loop() {
 void loop1() {
   static uint32_t prevTime1 = 0;
 
-  // Read USB Serial Port for MIDI data
+  // Read All MIDI ports
   if ( (micros() - prevTime1) > 800) { // 1000us 1ms
     prevTime1 = micros();
-
-    MIDI_PICO_UART0_Get(); // UART1 Serial2 port
-    MIDI_USB_SERIAL_DEV_Get(); // PC/MAC Serial port
+    MIDI_PICO_UART0_Get();     // read from WTS Controller (UART0/Serial1 port)
+    MIDI_CM5_UART1_Get();      // read from CM5 Compute Module (UART1/Serial2 port)
+    MIDI_USB_SERIAL_DEV_Get(); // read from PC/MAC MIDI (as Serial Data) (via USB)
+    MIDI_USB_DEV_Get();        // read from PC/MAC MIDI (via USB)
   }
+
 } // end loop1
 
 // =======================================================
