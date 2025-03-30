@@ -166,7 +166,7 @@ void setup1() {
   MIDI_PICO_UART0.begin(MIDI_CHANNEL_OMNI);
   MIDI_PICO_UART0.turnThruOff();
 
-  TinyUSB_SerialMIDI.setStringDescriptor("Wave Terrain Synth Serial");
+  TinyUSB_SerialMIDI.setStringDescriptor("WTS Serial MIDI");
   MIDI_USB_SERIAL_DEV.begin(MIDI_CHANNEL_OMNI);
   MIDI_USB_SERIAL_DEV.turnThruOff();
 
