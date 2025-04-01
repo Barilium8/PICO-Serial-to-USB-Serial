@@ -16,6 +16,7 @@
 // https://wokwi.com/tools/pioasm
 
 #include "hardware/uart.h"
+#define MIDI_SYSEX_ARRAY_SIZE 255
 #include <MIDI.h> // by Francois Best
 #include <Adafruit_TinyUSB.h>
 
@@ -52,7 +53,7 @@ struct MIDI_CNTLR_Settings : public midi::DefaultSettings{
   static const bool UseRunningStatus = false;
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
   static const bool Use1ByteParsing = true;
-  static const long BaudRate = ALL_BAUD; // tested at 2'000'000 and works
+  static const long BaudRate = 1'000'000; //ALL_BAUD; // tested at 2'000'000 and works
   static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI_PICO_UART0, MIDI_CNTLR_Settings);
@@ -63,7 +64,7 @@ struct MIDI_CM5_Settings : public midi::DefaultSettings{
   static const bool UseRunningStatus = false;
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
   static const bool Use1ByteParsing = true;
-  static const long BaudRate = ALL_BAUD;
+  static const long BaudRate = 1'000'000; //ALL_BAUD;
   static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial2, MIDI_CM5_UART1, MIDI_CM5_Settings);
@@ -73,8 +74,8 @@ uint8_t theMIDIChan = 16;
 
 
 // function prototypes
-//void HandleSysEx(byte *data, unsigned int length);
-void HandleSysEx(const byte *data, unsigned int length);
+void HandleSysEx(byte *data, unsigned int length);
+//void HandleSysEx(const byte *data, unsigned int length);
 void MIDI_PICO_UART0_Get();
 void MIDI_CM5_UART1_Get();
 void MIDI_USB_SERIAL_DEV_Get();
@@ -158,12 +159,12 @@ void setup1() {
   /* C:\Users\Steve\.platformio\packages\framework-arduinopico\libraries\Adafruit_TinyUSB_Arduino\src\arduino\ports\rp2040 */
 
   // Initialize Serial2 (UART1) for PICO-CM5 comms on GPIO8 (TX) and GPIO9 (RX)
-  uart_init(uart0, ALL_BAUD); // tested at 2'000'000 and works
+  uart_init(uart0, 1'000'000); // ALL_BAUD tested at 2'000'000 and works
   gpio_set_function(0, GPIO_FUNC_UART);  // Set GPIO0 to UART function
   gpio_set_function(1, GPIO_FUNC_UART);  // Set GPIO1 to UART function
 
   // Initialize Serial2 (UART1) for PICO-CM5 comms on GPIO8 (TX) and GPIO9 (RX)
-  uart_init(uart1, ALL_BAUD); // tested at 2'000'000 and works
+  uart_init(uart1, 1'000'000); // ALL_BAUD tested at 2'000'000 and works
   gpio_set_function(4, GPIO_FUNC_UART);  // Set GPIO8 to UART function
   gpio_set_function(5, GPIO_FUNC_UART);  // Set GPIO9 to UART function
 
@@ -177,7 +178,7 @@ void setup1() {
   TinyUSB_MIDI.setStringDescriptor("Wave Terrain Synth");
   MIDI_USB_DEV.begin(MIDI_CHANNEL_OMNI);
   MIDI_USB_DEV.turnThruOff();
-  //MIDI_USB_DEV.setHandleSystemExclusive(HandleSysEx);
+  MIDI_USB_DEV.setHandleSystemExclusive(HandleSysEx);
 
   while( !TinyUSBDevice.mounted() ) { delay(1); }  // wait until device mounted
 
@@ -288,18 +289,16 @@ void loop1() {
 
 // =======================================================
 
-//void HandleSysEx(byte *data, unsigned int length) {
-void HandleSysEx(const byte *data, unsigned int length) {
+void HandleSysEx(byte *data, unsigned int length) {
+//void HandleSysEx(const byte *data, unsigned int length) {
   //Serial.println(String("SysEx Message: length... ") + length +" data: " + data[0] + " " + data[1] + " " + data[2] + " "+ data[3] + " "+ data[4] + " "+ data[5] + " "+ data[6] + " "+ data[7] + " " + data[8] + " " + data[9]);
-  Serial.print(String("Recieved SysEx Message from WTS Synth Engine...  len=") + length + " ");
-  for (auto j=0; j<length; ++j) {
-    Serial.print(String(" ") + data[j]);
-  }
-  Serial.println();
+  // Serial.print(String("Recieved SysEx Message from WTS Synth Engine...  len=") + length + " ");
+  // for (auto j=0; j<length; ++j) {
+  //   Serial.print(String(" ") + data[j]);
+  // }
+  // Serial.println();
 
   if (gSend_PC_MIDI_As_MIDI)     MIDI_PICO_UART0.sendSysEx(length, data, true);        // outbound to PC/MAC MIDI port
-  //delayMicroseconds(1000 * (2 + length/3));
-
 
 } // end fcn HandleSysEx
 
@@ -335,9 +334,9 @@ void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
     if (MIDI_USB_DEV.read() && gSend_PC_MIDI_As_MIDI) {
 
       if ( MIDI_USB_DEV.getType() == midi::SystemExclusive ) {
-        Serial.println(" Inbound SYSEX data from MIDI_PICO_CM5_UART1 ");
-        HandleSysEx(MIDI_USB_DEV.getSysExArray(), MIDI_USB_DEV.getSysExArrayLength());
-        delayMicroseconds(50);
+        //Serial.println(" in MIDI_USB_DEV_Get() Inbound SYSEX data from MIDI_PICO_CM5_UART1 - IGNOR");
+        //HandleSysEx(MIDI_USB_DEV.getSysExArray(), MIDI_USB_DEV.getSysExArrayLength());
+        //delayMicroseconds(50);
       }
       else
       {
