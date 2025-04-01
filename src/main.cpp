@@ -73,6 +73,8 @@ uint8_t theMIDIChan = 16;
 
 
 // function prototypes
+//void HandleSysEx(byte *data, unsigned int length);
+void HandleSysEx(const byte *data, unsigned int length);
 void MIDI_PICO_UART0_Get();
 void MIDI_CM5_UART1_Get();
 void MIDI_USB_SERIAL_DEV_Get();
@@ -175,13 +177,12 @@ void setup1() {
   TinyUSB_MIDI.setStringDescriptor("Wave Terrain Synth");
   MIDI_USB_DEV.begin(MIDI_CHANNEL_OMNI);
   MIDI_USB_DEV.turnThruOff();
+  //MIDI_USB_DEV.setHandleSystemExclusive(HandleSysEx);
 
   while( !TinyUSBDevice.mounted() ) { delay(1); }  // wait until device mounted
 
-
   delay (500);
   //Serial.println(" PICO Serial-to-USB-Serial Starting... ");
-
 
 }  // end setup1
 
@@ -274,17 +275,31 @@ void loop1() {
   if ( (micros() - prevTime1) > 800) { // 1000us 1ms
     prevTime1 = micros();
     MIDI_PICO_UART0_Get();     // read from WTS Controller (UART0/Serial1 port)
+    delayMicroseconds(50);
     MIDI_CM5_UART1_Get();      // read from CM5 Compute Module (UART1/Serial2 port)
+    delayMicroseconds(50);
     MIDI_USB_SERIAL_DEV_Get(); // read from PC/MAC MIDI (as Serial Data) (via USB)
+    delayMicroseconds(50);
     MIDI_USB_DEV_Get();        // read from PC/MAC MIDI (via USB)
+    delayMicroseconds(50);
   }
 
 } // end loop1
 
 // =======================================================
 
-void HandleSysEx(byte *data, unsigned int length) {
-  Serial.println(String("SysEx Message: 1st 7 byts... ") + data[0] + " " + data[1] + " " + data[2] + " "+ data[3] + " "+ data[4] + " "+ data[5] + " "+ data[6] + " "+ data[7]);
+//void HandleSysEx(byte *data, unsigned int length) {
+void HandleSysEx(const byte *data, unsigned int length) {
+  //Serial.println(String("SysEx Message: length... ") + length +" data: " + data[0] + " " + data[1] + " " + data[2] + " "+ data[3] + " "+ data[4] + " "+ data[5] + " "+ data[6] + " "+ data[7] + " " + data[8] + " " + data[9]);
+  Serial.print(String("Recieved SysEx Message from WTS Synth Engine...  len=") + length + " ");
+  for (auto j=0; j<length; ++j) {
+    Serial.print(String(" ") + data[j]);
+  }
+  Serial.println();
+
+  if (gSend_PC_MIDI_As_MIDI)     MIDI_PICO_UART0.sendSysEx(length, data, true);        // outbound to PC/MAC MIDI port
+  //delayMicroseconds(1000 * (2 + length/3));
+
 
 } // end fcn HandleSysEx
 
@@ -318,7 +333,17 @@ void MIDI_USB_SERIAL_DEV_Get() { // inbound MIDI (as Serial Data) from PC/MAC (v
 
 void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
     if (MIDI_USB_DEV.read() && gSend_PC_MIDI_As_MIDI) {
-      MIDI_PICO_UART0.send(MIDI_USB_DEV.getType(), MIDI_USB_DEV.getData1(), MIDI_USB_DEV.getData2(), MIDI_USB_DEV.getChannel()); // outbound to Controller
+
+      if ( MIDI_USB_DEV.getType() == midi::SystemExclusive ) {
+        Serial.println(" Inbound SYSEX data from MIDI_PICO_CM5_UART1 ");
+        HandleSysEx(MIDI_USB_DEV.getSysExArray(), MIDI_USB_DEV.getSysExArrayLength());
+        delayMicroseconds(50);
+      }
+      else
+      {
+        MIDI_PICO_UART0.send(MIDI_USB_DEV.getType(), MIDI_USB_DEV.getData1(), MIDI_USB_DEV.getData2(), MIDI_USB_DEV.getChannel()); // outbound to Controller
+      }
+
     }
 }
 
