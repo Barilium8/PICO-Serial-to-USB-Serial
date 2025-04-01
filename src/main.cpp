@@ -31,7 +31,7 @@ struct USB_SM_Dev_Settings : public midi::DefaultSettings{
     static const bool HandleNullVelocityNoteOnAsNoteOff = true;
     static const bool Use1ByteParsing = true;
     static const long BaudRate = ALL_BAUD; //460'800; // 31250;
-    static const unsigned SysExMaxSize = 64;
+    static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(Adafruit_USBD_CDC, TinyUSB_SerialMIDI, MIDI_USB_SERIAL_DEV, USB_SM_Dev_Settings);
 
@@ -42,7 +42,7 @@ struct USBDev_Settings : public midi::DefaultSettings{
     static const bool HandleNullVelocityNoteOnAsNoteOff = true;
     static const bool Use1ByteParsing = true;
     static const long BaudRate = ALL_BAUD; // 460'800; // 31250;
-    static const unsigned SysExMaxSize = 64;
+    static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(Adafruit_USBD_MIDI, TinyUSB_MIDI, MIDI_USB_DEV, USBDev_Settings);
 
@@ -53,7 +53,7 @@ struct MIDI_CNTLR_Settings : public midi::DefaultSettings{
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
   static const bool Use1ByteParsing = true;
   static const long BaudRate = ALL_BAUD; // tested at 2'000'000 and works
-  static const unsigned SysExMaxSize = 64;
+  static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI_PICO_UART0, MIDI_CNTLR_Settings);
 
@@ -64,7 +64,7 @@ struct MIDI_CM5_Settings : public midi::DefaultSettings{
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
   static const bool Use1ByteParsing = true;
   static const long BaudRate = ALL_BAUD;
-  static const unsigned SysExMaxSize = 64;
+  static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial2, MIDI_CM5_UART1, MIDI_CM5_Settings);
 
