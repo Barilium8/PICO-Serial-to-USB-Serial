@@ -23,7 +23,8 @@
 #define PICO_DEFAULT_LED_GPIO 25
 #define HW_PROGRAM_BUTTON 26 // 26 new hw // was 2 // was 9
 
-#define ALL_BAUD 460'800
+#define USB_BAUD 460'800
+#define UART_BAUD 460'800 // 1'000'000
 
 // create USB_SERIAL (CDC) object
 Adafruit_USBD_CDC TinyUSB_SerialMIDI; // declare a USB 'Serial' port and wrap it in a MIDI intrerface
@@ -31,7 +32,7 @@ struct USB_SM_Dev_Settings : public midi::DefaultSettings{
     static const bool UseRunningStatus = false;
     static const bool HandleNullVelocityNoteOnAsNoteOff = true;
     static const bool Use1ByteParsing = true;
-    static const long BaudRate = ALL_BAUD; //460'800; // 31250;
+    static const long BaudRate = USB_BAUD;
     static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(Adafruit_USBD_CDC, TinyUSB_SerialMIDI, MIDI_USB_SERIAL_DEV, USB_SM_Dev_Settings);
@@ -42,7 +43,7 @@ struct USBDev_Settings : public midi::DefaultSettings{
     static const bool UseRunningStatus = false;
     static const bool HandleNullVelocityNoteOnAsNoteOff = true;
     static const bool Use1ByteParsing = true;
-    static const long BaudRate = ALL_BAUD; // 460'800; // 31250;
+    static const long BaudRate = USB_BAUD;
     static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(Adafruit_USBD_MIDI, TinyUSB_MIDI, MIDI_USB_DEV, USBDev_Settings);
@@ -53,7 +54,7 @@ struct MIDI_CNTLR_Settings : public midi::DefaultSettings{
   static const bool UseRunningStatus = false;
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
   static const bool Use1ByteParsing = true;
-  static const long BaudRate = 1'000'000; //ALL_BAUD; // tested at 2'000'000 and works
+  static const long BaudRate = UART_BAUD; // tested at 2'000'000 and works
   static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI_PICO_UART0, MIDI_CNTLR_Settings);
@@ -64,7 +65,7 @@ struct MIDI_CM5_Settings : public midi::DefaultSettings{
   static const bool UseRunningStatus = false;
   static const bool HandleNullVelocityNoteOnAsNoteOff = true;
   static const bool Use1ByteParsing = true;
-  static const long BaudRate = 1'000'000; //ALL_BAUD;
+  static const long BaudRate = UART_BAUD;
   static const unsigned SysExMaxSize = 255;
 };
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial2, MIDI_CM5_UART1, MIDI_CM5_Settings);
@@ -159,12 +160,12 @@ void setup1() {
   /* C:\Users\Steve\.platformio\packages\framework-arduinopico\libraries\Adafruit_TinyUSB_Arduino\src\arduino\ports\rp2040 */
 
   // Initialize Serial2 (UART1) for PICO-CM5 comms on GPIO8 (TX) and GPIO9 (RX)
-  uart_init(uart0, 1'000'000); // ALL_BAUD tested at 2'000'000 and works
+  uart_init(uart0, UART_BAUD); // USB_BAUD tested at 2'000'000 and works
   gpio_set_function(0, GPIO_FUNC_UART);  // Set GPIO0 to UART function
   gpio_set_function(1, GPIO_FUNC_UART);  // Set GPIO1 to UART function
 
   // Initialize Serial2 (UART1) for PICO-CM5 comms on GPIO8 (TX) and GPIO9 (RX)
-  uart_init(uart1, 1'000'000); // ALL_BAUD tested at 2'000'000 and works
+  uart_init(uart1, UART_BAUD); // USB_BAUD tested at 2'000'000 and works
   gpio_set_function(4, GPIO_FUNC_UART);  // Set GPIO8 to UART function
   gpio_set_function(5, GPIO_FUNC_UART);  // Set GPIO9 to UART function
 
@@ -308,7 +309,10 @@ void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
     if (MIDI_PICO_UART0.read()) {
       if (gSend_CM5_MIDI_As_SERIAL)  MIDI_CM5_UART1.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());      // outbound to PC/MAC Serial port
       if (gSend_PC_MIDI_As_SERIAL)   MIDI_USB_SERIAL_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel()); // outbound to PC/MAC Serial port
-      if (gSend_PC_MIDI_As_MIDI)     MIDI_USB_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());        // outbound to PC/MAC MIDI port
+      if (gSend_PC_MIDI_As_MIDI)     {
+        MIDI_USB_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());        // outbound to PC/MAC MIDI port
+        Serial.println(String("SendMidiToSynthEngine By BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+      }
     }
 }
 
