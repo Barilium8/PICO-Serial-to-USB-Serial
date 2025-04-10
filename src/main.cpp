@@ -290,6 +290,7 @@ void loop() {
 
 void loop1() {
   static uint32_t prevTime1 = 0;
+  static uint32_t prevTime2 = 0;
 
   // Read All MIDI ports
   if ( (micros() - prevTime1) > 800) { // 1000us 1ms
