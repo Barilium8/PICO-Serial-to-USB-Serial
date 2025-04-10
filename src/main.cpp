@@ -216,7 +216,7 @@ void loop() {
   auto now = millis();
 
   // Read all the inbound shift reg data for buttons and encoders
-  if ( (now - prevTime2) > 5000) {
+  if ( (now - prevTime2) > 2000) {
     prevTime2 = millis();
     BlinkLED(1);
   }
