@@ -24,7 +24,7 @@
 #define HW_PROGRAM_BUTTON 26 // 26 new hw // was 2 // was 9
 
 #define USB_BAUD 460'800
-#define UART_BAUD 460'800 // 1'000'000
+#define UART_BAUD 115'200 //460'800 // 1'000'000
 
 // create USB_SERIAL (CDC) object
 Adafruit_USBD_CDC TinyUSB_SerialMIDI; // declare a USB 'Serial' port and wrap it in a MIDI intrerface
@@ -106,8 +106,8 @@ char formattedVer[46];
 //==============================================================================================
 
 void setup() {
-  Serial.begin(115'200); // USB serial init w/defaults
   Serial.setStringDescriptor("DEBUG for SerialToUSBSerial");
+  Serial.begin(USB_BAUD); // USB serial init w/defaults
 
   pinMode(PICO_DEFAULT_LED_GPIO, OUTPUT);
 
@@ -159,7 +159,7 @@ void setup1() {
   // !!!!! MAKE SURE to set '#define CFG_TUD_CDC 2' and '#define CFG_TUD_MIDI 2' in file tusb_config_rp2040.h in dir...  !!!!
   /* C:\Users\Steve\.platformio\packages\framework-arduinopico\libraries\Adafruit_TinyUSB_Arduino\src\arduino\ports\rp2040 */
 
-  // Initialize Serial2 (UART1) for PICO-CM5 comms on GPIO8 (TX) and GPIO9 (RX)
+  // Initialize Serial1 (UART0) for PICO-CM5 comms on GPIO8 (TX) and GPIO9 (RX)
   uart_init(uart0, UART_BAUD); // USB_BAUD tested at 2'000'000 and works
   gpio_set_function(0, GPIO_FUNC_UART);  // Set GPIO0 to UART function
   gpio_set_function(1, GPIO_FUNC_UART);  // Set GPIO1 to UART function
@@ -171,6 +171,9 @@ void setup1() {
 
   MIDI_PICO_UART0.begin(MIDI_CHANNEL_OMNI);
   MIDI_PICO_UART0.turnThruOff();
+
+  MIDI_CM5_UART1.begin(MIDI_CHANNEL_OMNI);
+  MIDI_CM5_UART1.turnThruOff();
 
   TinyUSB_SerialMIDI.setStringDescriptor("WTS Serial MIDI");
   MIDI_USB_SERIAL_DEV.begin(MIDI_CHANNEL_OMNI);
