@@ -100,6 +100,11 @@ bool gSend_CM5_MIDI_As_SERIAL = false;
 bool gPrevSend_CM5_MIDI_As_SERIAL = false;
 const uint8_t Addr_Send_CM5_MIDI_As_SERIAL = 3;
 
+bool gSend_A_Note = false;
+bool gPrevSend_A_Note = false;
+const uint8_t Addr_Send_A_Note = 4;
+bool gA_Note_Is_Playing = false;
+
 String version = "1.2";
 char formattedVer[46];
 
@@ -142,10 +147,12 @@ void setup() {
   gSend_PC_MIDI_As_MIDI = EEPROM.read(Addr_Send_PC_MIDI_As_MIDI);
   gSend_PC_MIDI_As_SERIAL = EEPROM.read(Addr_Send_PC_MIDI_As_SERIAL);
   gSend_CM5_MIDI_As_SERIAL = EEPROM.read(Addr_Send_CM5_MIDI_As_SERIAL);
+  gSend_A_Note = EEPROM.read(Addr_Send_A_Note);
 
   gPrevSend_PC_MIDI_As_MIDI = gSend_PC_MIDI_As_MIDI;
   gPrevSend_PC_MIDI_As_SERIAL = gSend_PC_MIDI_As_SERIAL;
   gPrevSend_CM5_MIDI_As_SERIAL= gSend_CM5_MIDI_As_SERIAL;
+  gPrevSend_A_Note = gSend_A_Note;
 
   DrawMenu();
   PrintNotes();
@@ -248,6 +255,14 @@ void loop() {
       DrawMenu();
       Serial.println("  ...toggled Send CM5 MIDI As Serial Data");
     }
+    else if (serialData == "4") {
+      gPrevSend_A_Note = gSend_A_Note;
+      gSend_A_Note = !gSend_A_Note;
+      EEPromUpdate(Addr_Send_A_Note, gSend_A_Note);
+      DrawMenu();
+      Serial.println("  ...toggled Send A Note");
+    }
+
   }
 
     //=========== To Light WS2812 via PIO =========
@@ -287,6 +302,22 @@ void loop1() {
     delayMicroseconds(50);
     MIDI_USB_DEV_Get();        // read from PC/MAC MIDI (via USB)
     delayMicroseconds(50);
+  }
+
+  if ((millis() - prevTime2) > 1000) {
+    prevTime2 = millis();
+    DrawMenu();
+    if (gSend_A_Note) {
+      if (gA_Note_Is_Playing) {
+        MIDI_CM5_UART1.send(midi::NoteOff, 60, 127, 1);
+        Serial.println("Note OFFFFF");
+      }
+      else {
+        MIDI_CM5_UART1.send(midi::NoteOn, 60, 0, 1);
+        Serial.println("Note ON");
+      }
+      gA_Note_Is_Playing = !gA_Note_Is_Playing;
+    }
   }
 
 } // end loop1
@@ -398,6 +429,15 @@ void DrawMenu() {
   }
   else{
     Serial.println("  |  3 = Send CM5 MIDI as Serial Data (is off)  |");
+  }
+
+  Serial.println("  |                                             |");
+
+  if (gSend_A_Note) {
+    Serial.println("  |  4 = Send A Note (is on)                    |");
+  }
+  else{
+    Serial.println("  |  4 = Send A Note (is off)                   |");
   }
 
   Serial.println("  |                                             |");
