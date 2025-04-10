@@ -215,14 +215,14 @@ void loop() {
 
   auto now = millis();
 
-  // Read all the inbound shift reg data for buttons and encoders
+  // Blink LED
   if ( (now - prevTime2) > 2000) {
     prevTime2 = millis();
     BlinkLED(1);
   }
 
   static uint8_t tenTimes = 0;
-  // Read all the inbound shift reg data for buttons and encoders
+  // Read serial inbound data for menu
   if ( (now - prevTime3) > 500) {
     prevTime3 = millis();
 
@@ -342,11 +342,17 @@ void HandleSysEx(byte *data, unsigned int length) {
 
 void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
     if (MIDI_PICO_UART0.read()) {
-      if (gSend_CM5_MIDI_As_SERIAL)  MIDI_CM5_UART1.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());      // outbound to PC/MAC Serial port
-      if (gSend_PC_MIDI_As_SERIAL)   MIDI_USB_SERIAL_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel()); // outbound to PC/MAC Serial port
-      if (gSend_PC_MIDI_As_MIDI)     {
+      if (gSend_CM5_MIDI_As_SERIAL)  {
+        MIDI_CM5_UART1.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());      // outbound to PC/MAC Serial port
+        Serial.println(String("Fr Ctrlr (Pico UART0) 'LOOP' To SynthEngine (CM5 UART) - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        }
+      if (gSend_PC_MIDI_As_SERIAL) {
+        MIDI_USB_SERIAL_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel()); // outbound to PC/MAC Serial port
+        Serial.println(String("Fr Ctrlr (Pico UART0) To USB Serial - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        }
+      if (gSend_PC_MIDI_As_MIDI) {
         MIDI_USB_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());        // outbound to PC/MAC MIDI port
-        Serial.println(String("SendMidiToSynthEngine By BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        Serial.println(String("Fr Ctrlr (Pico UART0) to USB MIDI - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
       }
     }
 }
@@ -356,6 +362,7 @@ void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
 void MIDI_CM5_UART1_Get() { // inbound from CM5 (via UART1)
     if (MIDI_CM5_UART1.read() && gSend_CM5_MIDI_As_SERIAL) {
       MIDI_PICO_UART0.send(MIDI_CM5_UART1.getType(), MIDI_CM5_UART1.getData1(), MIDI_CM5_UART1.getData2(), MIDI_CM5_UART1.getChannel()); // outbound to PICO Controller
+      Serial.println(String("Fr CM5 (UART) to Ctrlr (UART) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
     }
 }
 
@@ -371,7 +378,7 @@ void MIDI_USB_SERIAL_DEV_Get() { // inbound MIDI (as Serial Data) from PC/MAC (v
 
 void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
     if (MIDI_USB_DEV.read() && gSend_PC_MIDI_As_MIDI) {
-
+      Serial.println(String("SendMidiToController By BRIDGE ") + MIDI_USB_DEV.getType() + " " + MIDI_USB_DEV.getData1() + " " + MIDI_USB_DEV.getData2() + " " + MIDI_USB_DEV.getChannel());
       if ( MIDI_USB_DEV.getType() == midi::SystemExclusive ) {
         //Serial.println(" in MIDI_USB_DEV_Get() Inbound SYSEX data from MIDI_PICO_CM5_UART1 - IGNOR");
         //HandleSysEx(MIDI_USB_DEV.getSysExArray(), MIDI_USB_DEV.getSysExArrayLength());
