@@ -258,6 +258,10 @@ void loop() {
     else if (serialData == "4") {
       gPrevSend_A_Note = gSend_A_Note;
       gSend_A_Note = !gSend_A_Note;
+      if (gSend_A_Note == false) {
+        MIDI_CM5_UART1.send(midi::NoteOff, 60, 64, 1);
+        MIDI_USB_DEV.send(midi::NoteOff, 60, 64, 1);
+      }
       EEPromUpdate(Addr_Send_A_Note, gSend_A_Note);
       DrawMenu();
       Serial.println("  ...toggled Send A Note");
@@ -310,11 +314,13 @@ void loop1() {
     DrawMenu();
     if (gSend_A_Note) {
       if (gA_Note_Is_Playing) {
-        MIDI_CM5_UART1.send(midi::NoteOff, 60, 127, 1);
+        MIDI_CM5_UART1.send(midi::NoteOff, 60, 64, 1);
+        MIDI_USB_DEV.send(midi::NoteOff, 60, 64, 1);
         Serial.println("Note OFFFFF");
       }
       else {
-        MIDI_CM5_UART1.send(midi::NoteOn, 60, 0, 1);
+        if(gSend_CM5_MIDI_As_SERIAL) { MIDI_CM5_UART1.send(midi::NoteOn, 60, 127, 1); }
+        if(gSend_PC_MIDI_As_MIDI) { MIDI_USB_DEV.send(midi::NoteOn, 60, 127, 1); }
         Serial.println("Note ON");
       }
       gA_Note_Is_Playing = !gA_Note_Is_Playing;
