@@ -191,7 +191,7 @@ void setup1() {
   MIDI_USB_DEV.turnThruOff();
   MIDI_USB_DEV.setHandleSystemExclusive(HandleSysEx);
 
-  while( !TinyUSBDevice.mounted() ) { delay(1); }  // wait until device mounted
+  //while( !TinyUSBDevice.mounted() ) { delay(1); }  // wait until device mounted
 
   delay (500);
   //Serial.println(" PICO Serial-to-USB-Serial Starting... ");
