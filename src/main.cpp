@@ -448,10 +448,10 @@ void DrawMenu() {
     Serial.println("  |                                                  |");
 
   if (gSend_A_Note) {
-    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM%)  ( on  )  |");
+    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM5)  ( on  )  |");
   }
   else{
-    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM%)  ( off )  |");
+    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM5)  ( off )  |");
   }
 
     Serial.println("  |                                                  |");
