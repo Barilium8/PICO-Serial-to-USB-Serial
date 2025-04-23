@@ -419,45 +419,45 @@ void DrawMenu() {
   Serial.print("  WTS DEBUGGER (PICO) ");
   Serial.println(formattedVer);
   Serial.println();
-  Serial.println("  o---------------------------------------------o");
-  Serial.println("  |                                             |");
+    Serial.println("  o--------------------------------------------------o");
+    Serial.println("  |                                                  |");
 
   if (gSend_PC_MIDI_As_MIDI) {
-    Serial.println("  |  1 = Send PC MIDI as MIDI (is on)           |");
+    Serial.println("  |  1 = Controller Mode MIDI (to PC/MAC)   ( on  )  |");
   }
   else{
-    Serial.println("  |  1 = Send PC MIDI as MIDI (is off)          |");
+    Serial.println("  |  1 = Controller Mode MIDI (to PC/MAC)   ( off )  |");
   }
 
   if (gSend_PC_MIDI_As_SERIAL) {
-    Serial.println("  |  2 = Send PC MIDI as Serial Data (is on)    |");
+    Serial.println("  |  2 = Controller Mode SERL (to PC/MAC)   ( on  )  |");
   }
   else{
-    Serial.println("  |  2 = Send PC MIDI as Serial Data (is off)   |");
+    Serial.println("  |  2 = Controller Mode SERL (to PC/MAC)   ( off )  |");
   }
 
-  Serial.println("  |                                             |");
+    Serial.println("  |                                                  |");
 
   if (gSend_CM5_MIDI_As_SERIAL) {
-    Serial.println("  |  3 = Send CM5 MIDI as Serial Data (is on)   |");
+    Serial.println("  |  3 = Synth Mode MIDI      (to CM5)      ( on  )  |");
   }
   else{
-    Serial.println("  |  3 = Send CM5 MIDI as Serial Data (is off)  |");
+    Serial.println("  |  3 = Synth Mode MIDI      (to CM5)      ( off )  |");
   }
 
-  Serial.println("  |                                             |");
+    Serial.println("  |                                                  |");
 
   if (gSend_A_Note) {
-    Serial.println("  |  4 = Send A Note (is on)                    |");
+    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM%)  ( on  )  |");
   }
   else{
-    Serial.println("  |  4 = Send A Note (is off)                   |");
+    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM%)  ( off )  |");
   }
 
-  Serial.println("  |                                             |");
-  Serial.println("  |  m = this menu                              |");
-  Serial.println("  |                                             |");
-  Serial.println("  o---------------------------------------------o");
+    Serial.println("  |                                                  |");
+    Serial.println("  |  m = this menu                                   |");
+    Serial.println("  |                                                  |");
+    Serial.println("  o--------------------------------------------------o");
 
 }
 
@@ -493,6 +493,7 @@ void PrintNotes() {
     Serial.println("    PICO: GPIO1 - UART0 'RX' (Pin1) to WTS IO Board JP30 Pin6");
     Serial.println("    PICO: GPIO4 - UART1 'TX' (Pin4) to WTS IO Board JP30 Pin3");
     Serial.println("    PICO: GPIO5 - UART1 'RX' (Pin5) to WTS IO Board JP30 Pin5");
+    Serial.println("    PICO: GND   - GND        (Pin6) to WTS IO Board JP30 Pin11");
 }
 
 //====================================================================
