@@ -26,17 +26,6 @@
 #define USB_BAUD 460'800
 #define UART_BAUD 115'200 //460'800 // 1'000'000
 
-// create USB_SERIAL (CDC) object
-Adafruit_USBD_CDC TinyUSB_SerialMIDI; // declare a USB 'Serial' port and wrap it in a MIDI intrerface
-struct USB_SM_Dev_Settings : public midi::DefaultSettings{
-    static const bool UseRunningStatus = false;
-    static const bool HandleNullVelocityNoteOnAsNoteOff = true;
-    static const bool Use1ByteParsing = true;
-    static const long BaudRate = USB_BAUD;
-    static const unsigned SysExMaxSize = 255;
-};
-MIDI_CREATE_CUSTOM_INSTANCE(Adafruit_USBD_CDC, TinyUSB_SerialMIDI, MIDI_USB_SERIAL_DEV, USB_SM_Dev_Settings);
-
 // create USB_MIDI object
 Adafruit_USBD_MIDI TinyUSB_MIDI; // declare a USB 'MIDI' port and wrap it in a MIDI intrerface
 struct USBDev_Settings : public midi::DefaultSettings{
@@ -75,11 +64,13 @@ uint8_t theMIDIChan = 16;
 
 
 // function prototypes
-void HandleSysEx(byte *data, unsigned int length);
-//void HandleSysEx(const byte *data, unsigned int length);
+
+
+//void HandleSysEx_MIDI_CM5_UART1(byte *data, unsigned int length);
+//void HandleSysEx_MIDI_USB_DEV(byte *data, unsigned int length);
+
 void MIDI_PICO_UART0_Get();
 void MIDI_CM5_UART1_Get();
-void MIDI_USB_SERIAL_DEV_Get();
 void MIDI_USB_DEV_Get();
 
 void SendControllerInfo();
@@ -88,26 +79,22 @@ void DrawMenu();
 void EEPromUpdate(uint8_t addr, uint8_t val);
 void PrintNotes();
 
-bool gSend_PC_MIDI_As_MIDI = true;
-bool gPrevSend_PC_MIDI_As_MIDI = true;
-const uint8_t Addr_Send_PC_MIDI_As_MIDI = 1;
+bool gSend_PC_MIDI = true;
+bool gPrevSend_PC_MIDI = true;
+const uint8_t Addr_Send_PC_MIDI = 1;
 
-bool gSend_PC_MIDI_As_SERIAL = true;
-bool gPrevSend_PC_MIDI_As_SERIAL = true;
-const uint8_t Addr_Send_PC_MIDI_As_SERIAL = 2;
-
-bool gSend_CM5_MIDI_As_SERIAL = false;
-bool gPrevSend_CM5_MIDI_As_SERIAL = false;
-const uint8_t Addr_Send_CM5_MIDI_As_SERIAL = 3;
+bool gSend_CM5_MIDI = false;
+bool gPrevSend_CM5_MIDI = false;
+const uint8_t Addr_Send_CM5_MIDI = 2;
 
 bool gSend_A_Note = false;
 bool gPrevSend_A_Note = false;
-const uint8_t Addr_Send_A_Note = 4;
+const uint8_t Addr_Send_A_Note = 3;
 bool gA_Note_Is_Playing = false;
 
 bool gForm_Feed = false;
 bool gPrevForm_Feed = false;
-const uint8_t Addr_Form_Feed = 5;
+const uint8_t Addr_Form_Feed = 4;
 
 String version = "1.3";
 char formattedVer[46];
@@ -148,16 +135,13 @@ void setup() {
 
   #define EEPROM_SIZE 256
   EEPROM.begin(EEPROM_SIZE);
-  gSend_PC_MIDI_As_MIDI = EEPROM.read(Addr_Send_PC_MIDI_As_MIDI);
-  gSend_PC_MIDI_As_SERIAL = EEPROM.read(Addr_Send_PC_MIDI_As_SERIAL);
-  gSend_CM5_MIDI_As_SERIAL = EEPROM.read(Addr_Send_CM5_MIDI_As_SERIAL);
+  gSend_PC_MIDI = EEPROM.read(Addr_Send_PC_MIDI);
+  gSend_CM5_MIDI = EEPROM.read(Addr_Send_CM5_MIDI);
   gSend_A_Note = EEPROM.read(Addr_Send_A_Note);
   gForm_Feed = EEPROM.read(Addr_Form_Feed);
 
-
-  gPrevSend_PC_MIDI_As_MIDI = gSend_PC_MIDI_As_MIDI;
-  gPrevSend_PC_MIDI_As_SERIAL = gSend_PC_MIDI_As_SERIAL;
-  gPrevSend_CM5_MIDI_As_SERIAL= gSend_CM5_MIDI_As_SERIAL;
+  gPrevSend_PC_MIDI = gSend_PC_MIDI;
+  gPrevSend_CM5_MIDI= gSend_CM5_MIDI;
   gPrevSend_A_Note = gSend_A_Note;
   gPrevForm_Feed = gForm_Feed;
 
@@ -188,15 +172,12 @@ void setup1() {
 
   MIDI_CM5_UART1.begin(MIDI_CHANNEL_OMNI);
   MIDI_CM5_UART1.turnThruOff();
-
-  TinyUSB_SerialMIDI.setStringDescriptor("WTS Serial MIDI");
-  MIDI_USB_SERIAL_DEV.begin(MIDI_CHANNEL_OMNI);
-  MIDI_USB_SERIAL_DEV.turnThruOff();
+  //MIDI_CM5_UART1.setHandleSystemExclusive(HandleSysEx_MIDI_CM5_UART1);
 
   TinyUSB_MIDI.setStringDescriptor("Wave Terrain Synth");
   MIDI_USB_DEV.begin(MIDI_CHANNEL_OMNI);
   MIDI_USB_DEV.turnThruOff();
-  MIDI_USB_DEV.setHandleSystemExclusive(HandleSysEx);
+  //MIDI_USB_DEV.setHandleSystemExclusive(HandleSysEx_MIDI_USB_DEV);
 
   //while( !TinyUSBDevice.mounted() ) { delay(1); }  // wait until device mounted
 
@@ -233,36 +214,25 @@ void loop() {
   if ( (now - prevTime3) > 500) {
     prevTime3 = millis();
 
-    // TinyUSB_SerialMIDI.println("Serial - TinyUSB_SerialMIDI");
-    // MIDI_USB_SERIAL_DEV.sendNoteOn(60,127,16);
-    // MIDI_USB_SERIAL_DEV.sendNoteOff(60,127,16);
-    // TinyUSB_SerialMIDI.println();
     String serialData = Serial.readString();
     if (serialData == "m" || serialData == "M") {
       DrawMenu();
     }
     else if (serialData == "1") {
-      gPrevSend_PC_MIDI_As_MIDI = gSend_PC_MIDI_As_MIDI;
-      gSend_PC_MIDI_As_MIDI = !gSend_PC_MIDI_As_MIDI;
-      EEPromUpdate(Addr_Send_PC_MIDI_As_MIDI, gSend_PC_MIDI_As_MIDI);
+      gPrevSend_PC_MIDI = gSend_PC_MIDI;
+      gSend_PC_MIDI = !gSend_PC_MIDI;
+      EEPromUpdate(Addr_Send_PC_MIDI, gSend_PC_MIDI);
       DrawMenu();
-      Serial.println("  ...toggled Send PC MIDI As MIDI");
+      Serial.println("  ...toggled Send PC MIDI");
     }
     else if (serialData == "2") {
-      gPrevSend_PC_MIDI_As_SERIAL = gSend_PC_MIDI_As_SERIAL;
-      gSend_PC_MIDI_As_SERIAL = !gSend_PC_MIDI_As_SERIAL;
-      EEPromUpdate(Addr_Send_PC_MIDI_As_SERIAL, gSend_PC_MIDI_As_SERIAL);
+      gPrevSend_CM5_MIDI = gSend_CM5_MIDI;
+      gSend_CM5_MIDI = !gSend_CM5_MIDI;
+      EEPromUpdate(Addr_Send_CM5_MIDI, gSend_CM5_MIDI);
       DrawMenu();
-      Serial.println("  ...toggled Send PC MIDI As Serial Data");
+      Serial.println("  ...toggled Send CM5 MIDI");
     }
     else if (serialData == "3") {
-      gPrevSend_CM5_MIDI_As_SERIAL = gSend_CM5_MIDI_As_SERIAL;
-      gSend_CM5_MIDI_As_SERIAL = !gSend_CM5_MIDI_As_SERIAL;
-      EEPromUpdate(Addr_Send_CM5_MIDI_As_SERIAL, gSend_CM5_MIDI_As_SERIAL);
-      DrawMenu();
-      Serial.println("  ...toggled Send CM5 MIDI As Serial Data");
-    }
-    else if (serialData == "4") {
       gPrevSend_A_Note = gSend_A_Note;
       gSend_A_Note = !gSend_A_Note;
       if (gSend_A_Note == false) {
@@ -314,10 +284,10 @@ void loop1() {
     prevTime1 = micros();
     MIDI_PICO_UART0_Get();     // read from WTS Controller (UART0/Serial1 port)
     delayMicroseconds(50);
+
     MIDI_CM5_UART1_Get();      // read from CM5 Compute Module (UART1/Serial2 port)
     delayMicroseconds(50);
-    MIDI_USB_SERIAL_DEV_Get(); // read from PC/MAC MIDI (as Serial Data) (via USB)
-    delayMicroseconds(50);
+
     MIDI_USB_DEV_Get();        // read from PC/MAC MIDI (via USB)
     delayMicroseconds(50);
   }
@@ -332,8 +302,8 @@ void loop1() {
         Serial.println("Note OFFFFF");
       }
       else {
-        if(gSend_CM5_MIDI_As_SERIAL) { MIDI_CM5_UART1.send(midi::NoteOn, 60, 127, 1); }
-        if(gSend_PC_MIDI_As_MIDI) { MIDI_USB_DEV.send(midi::NoteOn, 60, 127, 1); }
+        if(gSend_CM5_MIDI) { MIDI_CM5_UART1.send(midi::NoteOn, 60, 127, 1); }
+        if(gSend_PC_MIDI) { MIDI_USB_DEV.send(midi::NoteOn, 60, 127, 1); }
         Serial.println("Note ON");
       }
       gA_Note_Is_Playing = !gA_Note_Is_Playing;
@@ -344,38 +314,50 @@ void loop1() {
 
 // =======================================================
 
-void HandleSysEx(byte *data, unsigned int length) {
-//void HandleSysEx(const byte *data, unsigned int length) {
-  //Serial.println(String("SysEx Message: length... ") + length +" data: " + data[0] + " " + data[1] + " " + data[2] + " "+ data[3] + " "+ data[4] + " "+ data[5] + " "+ data[6] + " "+ data[7] + " " + data[8] + " " + data[9]);
-  // Serial.print(String("Recieved SysEx Message from WTS Synth Engine...  len=") + length + " ");
-  // for (auto j=0; j<length; ++j) {
-  //   Serial.print(String(" ") + data[j]);
-  // }
-  // Serial.println();
+// void HandleSysEx_MIDI_CM5_UART1(byte *data, unsigned int length) {
+// //void HandleSysEx(const byte *data, unsigned int length) {
+//   //Serial.println(String("SysEx Message: length... ") + length +" data: " + data[0] + " " + data[1] + " " + data[2] + " "+ data[3] + " "+ data[4] + " "+ data[5] + " "+ data[6] + " "+ data[7] + " " + data[8] + " " + data[9]);
+//   // Serial.print(String("Recieved SysEx Message from WTS Synth Engine...  len=") + length + " ");
 
-  if (gSend_PC_MIDI_As_MIDI)    {
-    //Serial.println(String("Fr PC/MAC (MIDI USB) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
-    Serial.println(String("SysEx handler"));
-    MIDI_PICO_UART0.sendSysEx(length, data, true);        // outbound to PC/MAC MIDI port
-  }
+//   //Serial.println(String("Fr PC/MAC (MIDI USB) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
+//   Serial.print(String("In SysEx handler from MIDI_CM5_UART1... msg ="));
+//   for (auto j=0; j<length; ++j) {
+//     Serial.print(String(" ") + data[j]);
+//   }
+//   Serial.println();
+//   MIDI_PICO_UART0.sendSysEx(length, data, true);        // outbound to PICO MIDI port
 
-} // end fcn HandleSysEx
+// } // end fcn HandleSysEx
+
+// // =======================================================
+
+// void HandleSysEx_MIDI_USB_DEV(byte *data, unsigned int length) {
+//   //void HandleSysEx(const byte *data, unsigned int length) {
+//     //Serial.println(String("SysEx Message: length... ") + length +" data: " + data[0] + " " + data[1] + " " + data[2] + " "+ data[3] + " "+ data[4] + " "+ data[5] + " "+ data[6] + " "+ data[7] + " " + data[8] + " " + data[9]);
+//     // Serial.print(String("Recieved SysEx Message from WTS Synth Engine...  len=") + length + " ");
+
+//     //Serial.println(String("Fr PC/MAC (MIDI USB) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
+//     Serial.print(String("In SysEx from handler MIDI_USB_DEV... msg ="));
+//     for (auto j=0; j<length; ++j) {
+//       Serial.print(String(" ") + data[j]);
+//     }
+//     Serial.println();
+//     MIDI_PICO_UART0.sendSysEx(length, data, true);        // outbound to PICO MIDI port
+
+//   } // end fcn HandleSysEx
 
 // =======================================================
 
 void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
     if (MIDI_PICO_UART0.read()) {
-      if (gSend_CM5_MIDI_As_SERIAL)  {
+      if (gSend_CM5_MIDI)  {
         MIDI_CM5_UART1.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());      // outbound to PC/MAC Serial port
-        Serial.println(String("Fr Ctrlr (Pico UART0) 'LOOP' To SynthEngine (CM5 UART1) - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        Serial.println(String("Fr Ctrlr (Pico UART0) 'loopback' to CM5 (UART1) - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
         }
-      if (gSend_PC_MIDI_As_SERIAL) {
-        MIDI_USB_SERIAL_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel()); // outbound to PC/MAC Serial port
-        Serial.println(String("Fr Ctrlr (Pico UART0) To USB Serial - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
-        }
-      if (gSend_PC_MIDI_As_MIDI) {
+
+      if (gSend_PC_MIDI) {
         MIDI_USB_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());        // outbound to PC/MAC MIDI port
-        Serial.println(String("Fr Ctrlr (Pico UART0) to USB MIDI - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        Serial.println(String("Fr Ctrlr (Pico UART0) 'external' to PC/MAC (USB MIDI) - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
       }
     }
 }
@@ -383,30 +365,40 @@ void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
 // =======================================================
 
 void MIDI_CM5_UART1_Get() { // inbound from CM5 (via UART1)
-    if (MIDI_CM5_UART1.read() && gSend_CM5_MIDI_As_SERIAL) {
-      MIDI_PICO_UART0.send(MIDI_CM5_UART1.getType(), MIDI_CM5_UART1.getData1(), MIDI_CM5_UART1.getData2(), MIDI_CM5_UART1.getChannel()); // outbound to PICO Controller
+    if (MIDI_CM5_UART1.read()) {
       Serial.println(String("Fr CM5 (UART1) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
-    }
-}
 
-// =======================================================
+      if ( MIDI_CM5_UART1.getType() == midi::SystemExclusive ) {
+        Serial.print("  ...inbound SYSEX data from MIDI_CM5_UART1  msg:");
+          for (auto j=0; j<MIDI_CM5_UART1.getSysExArrayLength(); ++j) {
+            Serial.print(String(" ") + MIDI_CM5_UART1.getSysExArray()[j]);
+          }
+          Serial.println();
+        MIDI_PICO_UART0.sendSysEx (MIDI_CM5_UART1.getSysExArrayLength(), MIDI_CM5_UART1.getSysExArray(), true);
+        delayMicroseconds(50);
+      }
+      else
+      {
+        MIDI_PICO_UART0.send(MIDI_CM5_UART1.getType(), MIDI_CM5_UART1.getData1(), MIDI_CM5_UART1.getData2(), MIDI_CM5_UART1.getChannel()); // outbound to PICO Controller
+      }
 
-void MIDI_USB_SERIAL_DEV_Get() { // inbound MIDI (as Serial Data) from PC/MAC (via USB)
-    if (MIDI_USB_SERIAL_DEV.read() && gSend_PC_MIDI_As_SERIAL) {
-      MIDI_PICO_UART0.send(MIDI_USB_SERIAL_DEV.getType(), MIDI_USB_SERIAL_DEV.getData1(), MIDI_USB_SERIAL_DEV.getData2(), MIDI_USB_SERIAL_DEV.getChannel()); // outbound to Controller
-      Serial.println(String("Fr PC/MAC (ser USB) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
     }
 }
 
 // =======================================================
 
 void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
-    if (MIDI_USB_DEV.read() && gSend_PC_MIDI_As_MIDI) {
+    if (MIDI_USB_DEV.read()) {
       Serial.println(String("Fr PC/MAC (MIDI USB) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
+
       if ( MIDI_USB_DEV.getType() == midi::SystemExclusive ) {
-        Serial.println(" in MIDI_USB_DEV_Get() Inbound SYSEX data from MIDI_USB_DEV");
-        //HandleSysEx(MIDI_USB_DEV.getSysExArray(), MIDI_USB_DEV.getSysExArrayLength());
-        //delayMicroseconds(50);
+        Serial.print("  ...inbound SYSEX data from MIDI_USB_DEV  msg:");
+          for (auto j=0; j<MIDI_USB_DEV.getSysExArrayLength(); ++j) {
+            Serial.print(String(" ") + MIDI_USB_DEV.getSysExArray()[j]);
+          }
+          Serial.println();
+        MIDI_PICO_UART0.sendSysEx (MIDI_USB_DEV.getSysExArrayLength(), MIDI_USB_DEV.getSysExArray(), true);
+        delayMicroseconds(50);
       }
       else
       {
@@ -440,47 +432,38 @@ void DrawMenu() {
     Serial.println("  o--------------------------------------------------o");
     Serial.println("  |                                                  |");
 
-  if (gSend_PC_MIDI_As_MIDI) {
+  if (gSend_PC_MIDI) {
     Serial.println("  |  1 = Controller Mode MIDI (to PC/MAC)   ( on  )  |");
   }
   else{
     Serial.println("  |  1 = Controller Mode MIDI (to PC/MAC)   ( off )  |");
   }
-
-  if (gSend_PC_MIDI_As_SERIAL) {
-    Serial.println("  |  2 = Controller Mode SERL (to PC/MAC)   ( on  )  |");
-  }
-  else{
-    Serial.println("  |  2 = Controller Mode SERL (to PC/MAC)   ( off )  |");
-  }
-
     Serial.println("  |                                                  |");
 
-  if (gSend_CM5_MIDI_As_SERIAL) {
-    Serial.println("  |  3 = Synth Mode MIDI      (to CM5)      ( on  )  |");
+  if (gSend_CM5_MIDI) {
+    Serial.println("  |  2 = Synth Mode MIDI      (to CM5)      ( on  )  |");
   }
   else{
-    Serial.println("  |  3 = Synth Mode MIDI      (to CM5)      ( off )  |");
+    Serial.println("  |  2 = Synth Mode MIDI      (to CM5)      ( off )  |");
   }
 
     Serial.println("  |                                                  |");
 
   if (gSend_A_Note) {
-    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM5)  ( on  )  |");
+    Serial.println("  |  3 = Send MIDI Notes      (PC/MAC/CM5)  ( on  )  |");
   }
   else{
-    Serial.println("  |  4 = Send MIDI Notes      (PC/MAC/CM5)  ( off )  |");
+    Serial.println("  |  3 = Send MIDI Notes      (PC/MAC/CM5)  ( off )  |");
   }
 
     Serial.println("  |                                                  |");
-    Serial.println("  |  m = this menu                                   |");
   if (gForm_Feed) {
     Serial.println("  |  f = form feed                          ( on  )  |");
   }
   else{
     Serial.println("  |  f = form feed                          ( off )  |");
   }
-
+    Serial.println("  |  m = this menu                                   |");
     Serial.println("  o--------------------------------------------------o");
 
 }
