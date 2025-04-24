@@ -105,7 +105,11 @@ bool gPrevSend_A_Note = false;
 const uint8_t Addr_Send_A_Note = 4;
 bool gA_Note_Is_Playing = false;
 
-String version = "1.2";
+bool gForm_Feed = false;
+bool gPrevForm_Feed = false;
+const uint8_t Addr_Form_Feed = 5;
+
+String version = "1.3";
 char formattedVer[46];
 
 //==============================================================================================
@@ -148,11 +152,14 @@ void setup() {
   gSend_PC_MIDI_As_SERIAL = EEPROM.read(Addr_Send_PC_MIDI_As_SERIAL);
   gSend_CM5_MIDI_As_SERIAL = EEPROM.read(Addr_Send_CM5_MIDI_As_SERIAL);
   gSend_A_Note = EEPROM.read(Addr_Send_A_Note);
+  gForm_Feed = EEPROM.read(Addr_Form_Feed);
+
 
   gPrevSend_PC_MIDI_As_MIDI = gSend_PC_MIDI_As_MIDI;
   gPrevSend_PC_MIDI_As_SERIAL = gSend_PC_MIDI_As_SERIAL;
   gPrevSend_CM5_MIDI_As_SERIAL= gSend_CM5_MIDI_As_SERIAL;
   gPrevSend_A_Note = gSend_A_Note;
+  gPrevForm_Feed = gForm_Feed;
 
   DrawMenu();
   PrintNotes();
@@ -231,7 +238,7 @@ void loop() {
     // MIDI_USB_SERIAL_DEV.sendNoteOff(60,127,16);
     // TinyUSB_SerialMIDI.println();
     String serialData = Serial.readString();
-    if (serialData == "M" || serialData == "m") {
+    if (serialData == "m" || serialData == "M") {
       DrawMenu();
     }
     else if (serialData == "1") {
@@ -266,7 +273,13 @@ void loop() {
       DrawMenu();
       Serial.println("  ...toggled Send A Note");
     }
-
+    else if (serialData == "f" || serialData == "F") {
+      gPrevForm_Feed = gForm_Feed;
+      gForm_Feed = !gForm_Feed;
+      EEPromUpdate(Addr_Form_Feed, gForm_Feed);
+      DrawMenu();
+      Serial.println("  ...toggled Form Feed");
+    }
   }
 
     //=========== To Light WS2812 via PIO =========
@@ -311,7 +324,7 @@ void loop1() {
 
   if ((millis() - prevTime2) > 1000) {
     prevTime2 = millis();
-    DrawMenu();
+    if (gForm_Feed) DrawMenu();
     if (gSend_A_Note) {
       if (gA_Note_Is_Playing) {
         MIDI_CM5_UART1.send(midi::NoteOff, 60, 64, 1);
@@ -456,7 +469,13 @@ void DrawMenu() {
 
     Serial.println("  |                                                  |");
     Serial.println("  |  m = this menu                                   |");
-    Serial.println("  |                                                  |");
+  if (gForm_Feed) {
+    Serial.println("  |  f = form feed                          ( on  )  |");
+  }
+  else{
+    Serial.println("  |  f = form feed                          ( off )  |");
+  }
+
     Serial.println("  o--------------------------------------------------o");
 
 }
