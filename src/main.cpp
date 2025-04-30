@@ -352,12 +352,12 @@ void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
     if (MIDI_PICO_UART0.read()) {
       if (gSend_CM5_MIDI)  {
         MIDI_CM5_UART1.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());      // outbound to PC/MAC Serial port
-        Serial.println(String("Fr Ctrlr (Pico UART0) 'loopback' to CM5 (UART1) - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        Serial.println(String("Fr Ctrlr to CM5 - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
         }
 
       if (gSend_PC_MIDI) {
         MIDI_USB_DEV.send(MIDI_PICO_UART0.getType(), MIDI_PICO_UART0.getData1(), MIDI_PICO_UART0.getData2(), MIDI_PICO_UART0.getChannel());        // outbound to PC/MAC MIDI port
-        Serial.println(String("Fr Ctrlr (Pico UART0) 'external' to PC/MAC (USB MIDI) - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
+        Serial.println(String("Fr Ctrlr to PC/MAC - msg Fr BRIDGE ") + MIDI_PICO_UART0.getType() + " " + MIDI_PICO_UART0.getData1() + " " + MIDI_PICO_UART0.getData2() + " " + MIDI_PICO_UART0.getChannel());
       }
     }
 }
@@ -366,7 +366,7 @@ void MIDI_PICO_UART0_Get() { // inbound from PICO Controller (via UART0)
 
 void MIDI_CM5_UART1_Get() { // inbound from CM5 (via UART1)
     if (MIDI_CM5_UART1.read()) {
-      Serial.println(String("Fr CM5 (UART1) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
+      Serial.println(String("Fr CM5 to Ctrlr - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
 
       if ( MIDI_CM5_UART1.getType() == midi::SystemExclusive ) {
         Serial.print("  ...inbound SYSEX data from MIDI_CM5_UART1  msg:");
@@ -389,7 +389,7 @@ void MIDI_CM5_UART1_Get() { // inbound from CM5 (via UART1)
 
 void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
     if (MIDI_USB_DEV.read()) {
-      Serial.println(String("Fr PC/MAC (MIDI USB) to Ctrlr (UART0) - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
+      Serial.println(String("Fr PC/MAC to Ctrlr - msg Fr BRIDGE ") + MIDI_CM5_UART1.getType() + " " + MIDI_CM5_UART1.getData1() + " " + MIDI_CM5_UART1.getData2() + " " + MIDI_CM5_UART1.getChannel());
 
       if ( MIDI_USB_DEV.getType() == midi::SystemExclusive ) {
         Serial.print("  ...inbound SYSEX data from MIDI_USB_DEV  msg:");
