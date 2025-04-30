@@ -62,6 +62,8 @@ MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial2, MIDI_CM5_UART1, MIDI_CM5_Se
 
 uint8_t theMIDIChan = 16;
 
+#define toggleSynthMode 14
+#define toggleCtrlrMode 15
 
 // function prototypes
 
@@ -184,6 +186,14 @@ void setup1() {
   delay (500);
   //Serial.println(" PICO Serial-to-USB-Serial Starting... ");
 
+  // gpio_init(toggleSynthMode);
+  // gpio_set_dir(toggleSynthMode, GPIO_IN);
+  // gpio_pull_down(toggleSynthMode);
+
+  // gpio_init(toggleCtrlrMode);
+  // gpio_set_dir(toggleCtrlrMode, GPIO_IN);
+  // gpio_pull_down(toggleCtrlrMode);
+
 }  // end setup1
 
 //-----------------------------------------------
@@ -202,6 +212,25 @@ void loop() {
   // }
 
   auto now = millis();
+
+  // if ( (now - prevTime1) > 2) {
+  //   prevTime1 = millis();
+  //   if (gpio_get(toggleSynthMode)) {
+  //     gPrevSend_CM5_MIDI = gSend_CM5_MIDI;
+  //     gSend_CM5_MIDI = !gSend_CM5_MIDI;
+  //     EEPromUpdate(Addr_Send_CM5_MIDI, gSend_CM5_MIDI);
+  //     DrawMenu();
+  //     Serial.println("  ...GPIO toggled Send CM5 MIDI");
+  //   }
+
+  //   if (gpio_get(toggleCtrlrMode)) {
+  //     gPrevSend_PC_MIDI = gSend_PC_MIDI;
+  //     gSend_PC_MIDI = !gSend_PC_MIDI;
+  //     EEPromUpdate(Addr_Send_PC_MIDI, gSend_PC_MIDI);
+  //     DrawMenu();
+  //     Serial.println("  ...GPIO toggled Send PC MIDI");
+  //   }
+  // }
 
   // Blink LED
   if ( (now - prevTime2) > 2000) {
@@ -270,6 +299,7 @@ void loop() {
       //     sleep_ms(3);
       // }
     //============================================
+
 
 } // end loop
 
