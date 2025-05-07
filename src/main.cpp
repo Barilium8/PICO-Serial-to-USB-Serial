@@ -1,6 +1,7 @@
 
 #include <Arduino.h>
 #include <pico/stdlib.h> // added to make UF2 button work, see SR1_BUTNUM_HELP
+#include <pico/time.h>
 #include <pico/bootrom.h> // added to make UF2 button work, see SR1_BUTNUM_HELP
 #include <EEPROM.h>
 
@@ -62,14 +63,26 @@ MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial2, MIDI_CM5_UART1, MIDI_CM5_Se
 
 uint8_t theMIDIChan = 16;
 
-#define toggleSynthMode 14
-#define toggleCtrlrMode 15
+#define toggleCtrlrMode 14
+#define toggleSynthMode 15
+
+const uint blink_pattern_SendBoth[] = {1, 0, 1, 0, 1, 0, 1, 0, 1, 0};
+const uint blink_pattern_SendPC[] =   {1, 0, 1, 0, 1, 0, 0, 0, 0, 0};
+const uint blink_pattern_SendCM5[] =  {1, 1, 1, 1, 1, 1, 1, 1, 0, 0};
+const uint blink_pattern_None[] =     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+const uint blink_count = 10;
+const uint interval_ms = 200;
+
+volatile uint pattern_index = 0;
+
+
 
 // function prototypes
 
-
 //void HandleSysEx_MIDI_CM5_UART1(byte *data, unsigned int length);
 //void HandleSysEx_MIDI_USB_DEV(byte *data, unsigned int length);
+
+void GPIO_interrupt_handler(uint gpio, uint32_t events);
 
 void MIDI_PICO_UART0_Get();
 void MIDI_CM5_UART1_Get();
@@ -77,6 +90,7 @@ void MIDI_USB_DEV_Get();
 
 void SendControllerInfo();
 void BlinkLED(uint8_t times);
+int64_t blinkCode_callback(alarm_id_t id, void *user_data);
 void DrawMenu();
 void EEPromUpdate(uint8_t addr, uint8_t val);
 void PrintNotes();
@@ -186,15 +200,48 @@ void setup1() {
   delay (500);
   //Serial.println(" PICO Serial-to-USB-Serial Starting... ");
 
-  // gpio_init(toggleSynthMode);
-  // gpio_set_dir(toggleSynthMode, GPIO_IN);
-  // gpio_pull_down(toggleSynthMode);
+  gpio_init(toggleSynthMode);
+  gpio_set_dir(toggleSynthMode, GPIO_IN);
+  gpio_pull_down(toggleSynthMode);
 
-  // gpio_init(toggleCtrlrMode);
-  // gpio_set_dir(toggleCtrlrMode, GPIO_IN);
-  // gpio_pull_down(toggleCtrlrMode);
+  gpio_init(toggleCtrlrMode);
+  gpio_set_dir(toggleCtrlrMode, GPIO_IN);
+  gpio_pull_down(toggleCtrlrMode);
+
+  gpio_set_irq_enabled_with_callback(toggleSynthMode, GPIO_IRQ_EDGE_RISE, true, &GPIO_interrupt_handler);
+  gpio_set_irq_enabled_with_callback(toggleCtrlrMode, GPIO_IRQ_EDGE_RISE, true, &GPIO_interrupt_handler);
+
+  // Start repeating alarm
+  add_alarm_in_us(interval_ms * 1000, blinkCode_callback, NULL, true);
 
 }  // end setup1
+
+//-----------------------------------------------
+
+void GPIO_interrupt_handler(uint gpio, uint32_t events) {
+  Serial.println(String("In GPIO_interrupt_handler... gpio=") + gpio + " events=" + events);
+
+  if (events & GPIO_IRQ_EDGE_RISE) {
+    Serial.println(String("    In GPIO_IRQ_EDGE_FALL..."));
+    switch(gpio) {
+      case toggleSynthMode:
+          gPrevSend_CM5_MIDI = gSend_CM5_MIDI;
+          gSend_CM5_MIDI = !gSend_CM5_MIDI;
+          EEPromUpdate(Addr_Send_CM5_MIDI, gSend_CM5_MIDI);
+          DrawMenu();
+          Serial.println("  ...GPIO toggled Send CM5 MIDI");
+      break;
+
+      case toggleCtrlrMode:
+          gPrevSend_PC_MIDI = gSend_PC_MIDI;
+          gSend_PC_MIDI = !gSend_PC_MIDI;
+          EEPromUpdate(Addr_Send_PC_MIDI, gSend_PC_MIDI);
+          DrawMenu();
+          Serial.println("  ...GPIO toggled Send PC MIDI");
+      break;
+    }
+  }
+}
 
 //-----------------------------------------------
 
@@ -213,30 +260,11 @@ void loop() {
 
   auto now = millis();
 
-  // if ( (now - prevTime1) > 2) {
-  //   prevTime1 = millis();
-  //   if (gpio_get(toggleSynthMode)) {
-  //     gPrevSend_CM5_MIDI = gSend_CM5_MIDI;
-  //     gSend_CM5_MIDI = !gSend_CM5_MIDI;
-  //     EEPromUpdate(Addr_Send_CM5_MIDI, gSend_CM5_MIDI);
-  //     DrawMenu();
-  //     Serial.println("  ...GPIO toggled Send CM5 MIDI");
-  //   }
-
-  //   if (gpio_get(toggleCtrlrMode)) {
-  //     gPrevSend_PC_MIDI = gSend_PC_MIDI;
-  //     gSend_PC_MIDI = !gSend_PC_MIDI;
-  //     EEPromUpdate(Addr_Send_PC_MIDI, gSend_PC_MIDI);
-  //     DrawMenu();
-  //     Serial.println("  ...GPIO toggled Send PC MIDI");
-  //   }
-  // }
-
   // Blink LED
-  if ( (now - prevTime2) > 2000) {
-    prevTime2 = millis();
-    BlinkLED(1);
-  }
+  // if ( (now - prevTime2) > 2000) {
+  //   prevTime2 = millis();
+  //   BlinkLED(1);
+  // }
 
   static uint8_t tenTimes = 0;
   // Read serial inbound data for menu
@@ -442,14 +470,83 @@ void MIDI_USB_DEV_Get() { // inbound MIDI from PC/MAC (via USB)
 
 void BlinkLED(uint8_t times) {
 
+    if (gSend_PC_MIDI && gSend_CM5_MIDI) {
+      for (auto k=0; k<times*2; ++k) {
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(125);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(30);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(125);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(30);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(125);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(30);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(125);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(30);
+      }
+    }
+
+    else if (gSend_PC_MIDI && !gSend_CM5_MIDI) {
       for (auto k=0; k<times; ++k) {
         digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
-        delay(250);
+        delay(125);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(30);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(125);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(30);
+      }
+    }
+
+    else if (!gSend_PC_MIDI && gSend_CM5_MIDI) {
+      for (auto k=0; k<times; ++k) {
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(550);
         digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
         delay(50);
       }
+    }
+
+    else {
+      for (auto k=0; k<times; ++k) {
+        digitalWrite(PICO_DEFAULT_LED_GPIO, HIGH);
+        delay(70);
+        digitalWrite(PICO_DEFAULT_LED_GPIO, LOW);
+        delay(50);
+      }
+    }
 
 } // end Blink LED
+
+//====================================================================
+
+int64_t blinkCode_callback(alarm_id_t id, void *user_data) {
+
+    if (gSend_PC_MIDI && gSend_CM5_MIDI) {
+      gpio_put(PICO_DEFAULT_LED_GPIO, blink_pattern_SendBoth[pattern_index]);
+    }
+
+    else if (gSend_PC_MIDI && !gSend_CM5_MIDI) {
+      gpio_put(PICO_DEFAULT_LED_GPIO, blink_pattern_SendPC[pattern_index]);
+    }
+
+    else if (!gSend_PC_MIDI && gSend_CM5_MIDI) {
+      gpio_put(PICO_DEFAULT_LED_GPIO, blink_pattern_SendCM5[pattern_index]);
+    }
+
+    else {
+      gpio_put(PICO_DEFAULT_LED_GPIO, blink_pattern_None[pattern_index]);
+    }
+
+    pattern_index = (pattern_index + 1) % blink_count;
+    return interval_ms * 1000; // reschedule in microseconds
+}
 
 //====================================================================
 
