@@ -112,7 +112,7 @@ bool gForm_Feed = false;
 bool gPrevForm_Feed = false;
 const uint8_t Addr_Form_Feed = 4;
 
-String version = "1.3";
+String version = "1.4";
 char formattedVer[46];
 
 //==============================================================================================
