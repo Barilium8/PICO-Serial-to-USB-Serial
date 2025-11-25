@@ -112,8 +112,11 @@ bool gForm_Feed = false;
 bool gPrevForm_Feed = false;
 const uint8_t Addr_Form_Feed = 4;
 
-String version = "1.5";
+String version = "1.6";
 char formattedVer[46];
+
+bool gReady0 = false;
+bool gReady1 = false;
 
 //==============================================================================================
 
@@ -163,6 +166,7 @@ void setup() {
 
   DrawMenu();
   PrintNotes();
+  gReady0 = true;
 
 } // end setup
 
@@ -214,31 +218,36 @@ void setup1() {
   // Start repeating alarm
   add_alarm_in_us(interval_ms * 1000, blinkCode_callback, NULL, true);
 
+  gReady1 = true;
+
 }  // end setup1
 
 //-----------------------------------------------
 
 void GPIO_interrupt_handler(uint gpio, uint32_t events) {
-  Serial.println(String("In GPIO_interrupt_handler... gpio=") + gpio + " events=" + events);
+  if (gReady0 && gReady1)
+  {
+    Serial.println(String("In GPIO_interrupt_handler... gpio=") + gpio + " events=" + events);
 
-  if (events & GPIO_IRQ_EDGE_RISE) {
-    Serial.println(String("    In GPIO_IRQ_EDGE_FALL..."));
-    switch(gpio) {
-      case toggleSynthMode:
-          gPrevSend_CM5_MIDI = gSend_CM5_MIDI;
-          gSend_CM5_MIDI = !gSend_CM5_MIDI;
-          EEPromUpdate(Addr_Send_CM5_MIDI, gSend_CM5_MIDI);
-          DrawMenu();
-          Serial.println("  ...GPIO toggled Send CM5 MIDI");
-      break;
+    if (events & GPIO_IRQ_EDGE_RISE) {
+      Serial.println(String("    In GPIO_IRQ_EDGE_FALL..."));
+      switch(gpio) {
+        case toggleSynthMode:
+            gPrevSend_CM5_MIDI = gSend_CM5_MIDI;
+            gSend_CM5_MIDI = !gSend_CM5_MIDI;
+            EEPromUpdate(Addr_Send_CM5_MIDI, gSend_CM5_MIDI);
+            DrawMenu();
+            Serial.println("  ...GPIO toggled Send CM5 MIDI");
+        break;
 
-      case toggleCtrlrMode:
-          gPrevSend_PC_MIDI = gSend_PC_MIDI;
-          gSend_PC_MIDI = !gSend_PC_MIDI;
-          EEPromUpdate(Addr_Send_PC_MIDI, gSend_PC_MIDI);
-          DrawMenu();
-          Serial.println("  ...GPIO toggled Send PC MIDI");
-      break;
+        case toggleCtrlrMode:
+            gPrevSend_PC_MIDI = gSend_PC_MIDI;
+            gSend_PC_MIDI = !gSend_PC_MIDI;
+            EEPromUpdate(Addr_Send_PC_MIDI, gSend_PC_MIDI);
+            DrawMenu();
+            Serial.println("  ...GPIO toggled Send PC MIDI");
+        break;
+      }
     }
   }
 }
@@ -354,17 +363,17 @@ void loop1() {
     prevTime2 = millis();
     if (gForm_Feed) DrawMenu();
     if (gSend_A_Note) {
-      if (gA_Note_Is_Playing) {
-        MIDI_CM5_UART1.send(midi::NoteOff, 60, 64, 1);
-        MIDI_USB_DEV.send(midi::NoteOff, 60, 64, 1);
-        Serial.println("Note OFFFFF");
-      }
-      else {
-        if(gSend_CM5_MIDI) { MIDI_CM5_UART1.send(midi::NoteOn, 60, 127, 1); }
-        if(gSend_PC_MIDI) { MIDI_USB_DEV.send(midi::NoteOn, 60, 127, 1); }
-        Serial.println("Note ON");
-      }
-      gA_Note_Is_Playing = !gA_Note_Is_Playing;
+      // if (gA_Note_Is_Playing) {
+      //   MIDI_CM5_UART1.send(midi::NoteOff, 60, 64, 1);
+      //   MIDI_USB_DEV.send(midi::NoteOff, 60, 64, 1);
+      //   Serial.println("Note OFFFFF");
+      // }
+      // else {
+      //   if(gSend_CM5_MIDI) { MIDI_CM5_UART1.send(midi::NoteOn, 60, 127, 1); }
+      //   if(gSend_PC_MIDI) { MIDI_USB_DEV.send(midi::NoteOn, 60, 127, 1); }
+      //   Serial.println("Note ON");
+      // }
+      // gA_Note_Is_Playing = !gA_Note_Is_Playing;
     }
   }
 
