@@ -112,7 +112,7 @@ bool gForm_Feed = false;
 bool gPrevForm_Feed = false;
 const uint8_t Addr_Form_Feed = 4;
 
-String version = "1.7";
+String version = "1.8";
 char formattedVer[46];  // 46 chars used for text formatting. :-)
 
 bool gReady0 = false;
@@ -126,10 +126,10 @@ void setup() {
 
   pinMode(PICO_DEFAULT_LED_GPIO, OUTPUT);
 
-  // gpio_init(HW_PROGRAM_BUTTON);
-  // gpio_set_function(HW_PROGRAM_BUTTON, GPIO_FUNC_SIO);
-  // gpio_set_dir(HW_PROGRAM_BUTTON, GPIO_IN);
-  // pinMode(HW_PROGRAM_BUTTON, INPUT_PULLUP);
+  gpio_init(HW_PROGRAM_BUTTON);
+  gpio_set_function(HW_PROGRAM_BUTTON, GPIO_FUNC_SIO);
+  gpio_set_dir(HW_PROGRAM_BUTTON, GPIO_IN);
+  pinMode(HW_PROGRAM_BUTTON, INPUT_PULLUP);
 
   //========= To Light WS2812 via PIO ============================
 
@@ -260,13 +260,13 @@ void loop() {
   static uint32_t prevTime2 = 0;
   static uint32_t prevTime3 = 0;
 
-  // if ( (micros() - prevTime1) > 800) {
-  //   prevTime1 = micros();
-  //   if (!gpio_get(HW_PROGRAM_BUTTON)) {
-  //     Serial.println(" Going into Mass Storage boot mode...");
-  //     reset_usb_boot(0,0);
-  //   }
-  // }
+  if ( (micros() - prevTime1) > 800) {
+    prevTime1 = micros();
+    if (!gpio_get(HW_PROGRAM_BUTTON)) {
+      Serial.println(" Going into Mass Storage boot mode...");
+      reset_usb_boot(0,0);
+    }
+  }
 
   auto now = millis();
 
